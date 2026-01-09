@@ -2,19 +2,46 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
 <title>FOOD SLICE - ROUND 5</title>
 
 <style>
-  body{
+  /* =========================================================
+     ✅ 스크롤 완전 차단 + iOS 바운스 방지(핵심)
+     ========================================================= */
+  html, body{
     margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;            /* ✅ 스크롤바 제거 */
+    overscroll-behavior:none;   /* ✅ 당김(바운스) 방지 */
+    touch-action:none;          /* ✅ 페이지 드래그/스크롤 제스처 차단 */
     background:#fff;
+  }
+
+  /* iOS 주소창 높이 변동 대응(선택이지만 추천) */
+  :root{ --vh: 1vh; }
+  body{
+    height: calc(var(--vh) * 100);
     font-family: Arial, Helvetica, sans-serif;
     color:#111;
   }
-  .wrap{ width:100%; text-align:center; }
 
-  /* ✅ 모바일 한 화면 스케일(게임 화면만) */
+  .wrap{ width:100%; height:100%; text-align:center; }
+
+  /* =========================================================
+     ✅ "한 화면" 자동 축소를 위한 스케일 루트(게임 전체)
+     - stage만 scale하면 내부 높이 계산이 흔들릴 수 있어
+     - 그래서 scaleRoot(outer) + stage(inner)를 같이 씀
+     ========================================================= */
+  #scaleRoot{
+    width: calc(1100px + 40px);   /* 기준 폭 + 좌우 여백 */
+    margin: 0 auto;
+    transform-origin: top center;
+  }
+
+  /* ✅ 게임 화면(기준 폭) */
   #stage{
     width:1100px;
     margin:0 auto;
@@ -177,7 +204,7 @@
   .view.active{ display:block; }
   .successScreen{
     width:100vw;
-    height:100vh;
+    height: calc(var(--vh) * 100);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -208,52 +235,55 @@
 
   <!-- ✅ 게임 화면 -->
   <div id="viewGame" class="view active">
-    <div id="stage">
-      <div class="title">FOOD SLICE</div>
+    <!-- ✅ 스케일 루트로 게임 전체를 축소 -->
+    <div id="scaleRoot">
+      <div id="stage">
+        <div class="title">FOOD SLICE</div>
 
-      <div class="topRow">
-        <div class="topCard"><div id="timeTxt">15.0</div></div>
-        <div class="topCard"><div id="goalTxt">목표: ?회 깎기</div></div>
-      </div>
-
-      <div class="controls">
-        <button onclick="ui('reload')">새로고침</button>
-        <button onclick="ui('start')">시작</button>
-        <button onclick="ui('pause')">정지</button>
-      </div>
-
-      <div class="card" id="card">
-        <div class="overlay" id="overlay">
-          <div class="ovMain" id="ovMain"></div>
+        <div class="topRow">
+          <div class="topCard"><div id="timeTxt">15.0</div></div>
+          <div class="topCard"><div id="goalTxt">목표: ?회 깎기</div></div>
         </div>
 
-        <div class="food" id="food"><img id="foodImg" alt=""></div>
-        <div class="knife" id="knife"></div>
-      </div>
-
-      <div class="padWrap">
-        <div class="pad" aria-label="direction pad">
-          <div class="empty"></div>
-          <button data-dir="up">▲</button>
-          <div class="empty"></div>
-
-          <button data-dir="left">◀</button>
-          <div class="empty"></div>
-          <button data-dir="right">▶</button>
-
-          <div class="empty"></div>
-          <button data-dir="down">▼</button>
-          <div class="empty"></div>
+        <div class="controls">
+          <button onclick="ui('reload')">새로고침</button>
+          <button onclick="ui('start')">시작</button>
+          <button onclick="ui('pause')">정지</button>
         </div>
-      </div>
 
+        <div class="card" id="card">
+          <div class="overlay" id="overlay">
+            <div class="ovMain" id="ovMain"></div>
+          </div>
+
+          <div class="food" id="food"><img id="foodImg" alt=""></div>
+          <div class="knife" id="knife"></div>
+        </div>
+
+        <div class="padWrap">
+          <div class="pad" aria-label="direction pad">
+            <div class="empty"></div>
+            <button data-dir="up">▲</button>
+            <div class="empty"></div>
+
+            <button data-dir="left">◀</button>
+            <div class="empty"></div>
+            <button data-dir="right">▶</button>
+
+            <div class="empty"></div>
+            <button data-dir="down">▼</button>
+            <div class="empty"></div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
   <!-- ✅ 성공 화면 -->
   <div id="viewSuccess" class="view">
     <div class="successScreen">
-      <div class="successMain">성공! ♥하나가 회복되는 느낌이다</div>
+      <div class="successMain">성공! ♥가 회복되는 느낌이다</div>
       <div class="successSub">오늘은 이것만 먹자. 음식을 아껴야해.</div>
     </div>
   </div>
@@ -261,6 +291,20 @@
 </div>
 
 <script>
+/* =========================================================
+   ✅ iOS 주소창 높이 변동 대응(스크롤/레이아웃 흔들림 방지)
+   ========================================================= */
+function setVh(){
+  document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+}
+window.addEventListener('load', setVh);
+window.addEventListener('resize', setVh);
+
+/* =========================================================
+   ✅ iOS에서 페이지가 밀리는 것까지 완전 차단(필수급)
+   ========================================================= */
+document.addEventListener('touchmove', (e)=>{ e.preventDefault(); }, { passive:false });
+
 /* =========================================================
    ✅ 쉽게 수정하는 곳(다른 사이트로 복사할 때 여기만 건드리면 됨)
    ========================================================= */
@@ -284,38 +328,37 @@ const CONFIG = {
     "static/tomato7.png" 
   ],
 
-  // ✅ 원형 인식 반경(px): 값↑ => 더 쉽게 썰림
   HIT_FOOD_R: 38,
   HIT_KNIFE_R: 55,
 
-  // ✅ 이동 속도
   FOOD_MOVE_SPEED: 240,
   KNIFE_SPEED: 460,
 
-  // ✅ 음식 방향 전환(값↑ => 덜 꺾임)
   TURN_MS_MIN: 1100,
   TURN_MS_MAX: 2200,
 
-  // ✅ 1초 쿨다운 유지
   SLICE_COOLDOWN_MS: 1000,
-
-  // ✅ 마지막 성공 후 1초 뒤 문구 화면
   SUCCESS_DELAY_MS: 1000
 };
 
 /* =========================================================
-   모바일 한 화면 스케일(게임 화면만)
+   ✅ 모바일/아이패드: 한 화면 자동 축소(게임 전체)
    ========================================================= */
 function fitStage(){
+  const root = document.getElementById('scaleRoot');
   const stage = document.getElementById('stage');
-  if(!stage) return;
-  const baseW = 1100;
-  const baseH = stage.scrollHeight;
+  if(!root || !stage) return;
+
+  // 기준 크기(스케일 전)
+  const baseW = root.offsetWidth;             // 1100 + 여백
+  const baseH = stage.offsetHeight + 16;      // stage 실제 높이
+
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const s = Math.min(1, vw/baseW, vh/baseH);
-  stage.style.transform = `scale(${s})`;
-  stage.style.transformOrigin = 'top center';
+
+  const s = Math.min(1, vw / baseW, vh / baseH);
+  root.style.transform = `scale(${s})`;
+  root.style.transformOrigin = 'top center';
 }
 window.addEventListener('load', fitStage);
 window.addEventListener('resize', fitStage);
@@ -376,11 +419,13 @@ window.addEventListener('keyup', (e)=>{
 
 document.querySelectorAll('.pad button[data-dir]').forEach(btn=>{
   const dir = btn.dataset.dir;
+
   btn.addEventListener('pointerdown', (e)=>{
     e.preventDefault();
     btn.setPointerCapture(e.pointerId);
     input[dir] = true;
   });
+
   const off = (e)=>{
     e.preventDefault();
     input[dir] = false;
@@ -485,33 +530,24 @@ function isCircleHit(){
 }
 
 /* =========================================================
-   썰기(요구사항 반영)
-   - 기본: photato1
-   - 1회 인식: photato2
-   - 2회 인식(마지막): photato3
-   - 마지막 인식이 15초 안이면 성공 판정
-   - 성공 판정 후 1초 뒤 문구 화면 전환(이 1초는 제한시간에 포함되지 않음)
+   썰기
    ========================================================= */
 function onSlice(now){
   if(ended) return;
 
-  // ✅ 2초 쿨다운
   if(now - lastSliceAt < CONFIG.SLICE_COOLDOWN_MS) return;
   lastSliceAt = now;
 
   sliceCount++;
 
-  // ✅ 단계 이미지 교체: 0->1->2...
   const stageIndex = clamp(sliceCount, 0, CONFIG.STAGES.length-1);
   foodImg.src = CONFIG.STAGES[stageIndex];
 
-  // ✅ required 달성 시: 즉시 "성공 판정" + 1초 후 전환
   if(sliceCount >= CONFIG.REQUIRED_SLICES){
     ended = true;
     paused = true;
     started = false;
 
-    // ✅ 타이머는 여기서 이미 '성공했는지' 확인이 끝난 상태(1초 딜레이는 타이머 제외)
     if(successTimeoutId) clearTimeout(successTimeoutId);
     successTimeoutId = setTimeout(()=>{
       switchView('success');
@@ -536,14 +572,11 @@ function resetRound(){
   timeLeftMs = CONFIG.ROUND_MS;
   timeTxt.textContent = (timeLeftMs/1000).toFixed(1);
 
-  // ✅ 기본 이미지
   foodImg.src = CONFIG.STAGES[0];
 
-  // ✅ 칼 위치 먼저
   knife.x = CARD_W/2;
   knife.y = CARD_H*0.70;
 
-  // ✅ 시작 시 겹침 방지(초반 인식 문제 줄이기)
   const minDist = (CONFIG.HIT_FOOD_R + CONFIG.HIT_KNIFE_R + 20);
   const minDist2 = minDist * minDist;
   let tries = 0;
@@ -606,7 +639,6 @@ function loop(ts){
       if(c && !wasColliding) onSlice(now);
       wasColliding = c;
 
-      // ✅ 15초 내 마지막 인식 못하면 실패 처리(3초 메시지 후 정지 상태로 복귀)
       if(timeLeftMs <= 0){
         ended = true;
         paused = true;
@@ -638,23 +670,18 @@ function loop(ts){
   started = false;
   paused = true;
   ended = false;
+  setVh();
   fitStage();
   requestAnimationFrame(loop);
 })();
 </script>
 
 <!--
-✅ 다른 사이트에서 required를 1씩 늘리기(수정 용이 포인트)
-- CONFIG.REQUIRED_SLICES 값을 바꾸면 됨.
-  (이번 라운드는 2회가 맞음)
+✅ required 늘리기
+- CONFIG.REQUIRED_SLICES 값만 바꾸면 됨.
 
 ✅ 이미지 바꾸기
-- CONFIG.STAGES 배열에 원하는 파일명을 그대로 넣으면 됨.
-  예) ["static/a.png","static/b.png","static/c.png","static/d.png"...]
-  required가 늘어나면 stages도 그 이상 준비해두는 게 안전함.
-
-✅ “1초 후 문구 전환”은 성공 판정 이후 연출이며,
-   제한시간 15초 판정에는 포함되지 않음(요구사항 반영).
+- CONFIG.STAGES 배열 파일명만 바꾸면 됨.
 -->
 </body>
 </html>
