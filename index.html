@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FOOD SLICE - ROUND 5</title>
+
+<style>
+  body{
+    margin:0;
+    background:#fff;
+    font-family: Arial, Helvetica, sans-serif;
+    color:#111;
+  }
+  .wrap{ width:100%; text-align:center; }
+
+  /* ✅ 모바일 한 화면 스케일(게임 화면만) */
+  #stage{
+    width:1100px;
+    margin:0 auto;
+    transform-origin: top center;
+  }
+
+  .title{
+    font-size:22px;
+    font-weight:700;
+    margin:16px 0 10px;
+  }
+
+  .topRow{
+    width:1024px;
+    max-width:92vw;
+    margin:0 auto 10px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+  }
+  .topCard{
+    border:2px solid #111;
+    padding:12px;
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:64px;
+  }
+  #timeTxt{
+    font-family: ui-monospace, monospace;
+    font-size:44px;
+    font-weight:800;
+    letter-spacing:1px;
+  }
+  #goalTxt{
+    font-size:18px;
+    font-weight:700;
+  }
+
+  .controls{
+    width:1024px;
+    max-width:92vw;
+    margin:0 auto 10px;
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap:10px;
+    align-items:center;
+  }
+  button{
+    border:2px solid #111;
+    background:#fff;
+    padding:12px;
+    font-size:16px;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action: manipulation;
+  }
+  button:active{ transform: translateY(1px); }
+
+  .card{
+    width:1024px;
+    height:768px;
+    max-width:92vw;
+    margin:0 auto;
+    border:2px solid #111;
+    position:relative;
+    overflow:hidden;
+    background:#fff;
+    touch-action:none;
+  }
+
+  /* ✅ 음식 4:3 프레임 */
+  .food{
+    position:absolute;
+    width:160px;         /* 음식 크기(가로) */
+    height:120px;        /* 음식 크기(세로) 4:3 */
+    user-select:none;
+    pointer-events:none;
+  }
+  .food img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    user-select:none;
+    pointer-events:none;
+  }
+
+  /* ✅ 칼 9:16 프레임 */
+  .knife{
+    position:absolute;
+    width:72px;
+    height:128px;
+    background-image:url("static/knife.png");
+    background-size:contain;
+    background-repeat:no-repeat;
+    background-position:center;
+    user-select:none;
+    pointer-events:none;
+  }
+
+  .padWrap{
+    width:1024px;
+    max-width:92vw;
+    margin:12px auto 16px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+  .pad{
+    border:2px solid #111;
+    width:220px;
+    height:220px;
+    box-sizing:border-box;
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap:6px;
+    padding:10px;
+  }
+  .pad button{
+    border:2px solid #111;
+    background:#fff;
+    font-size:16px;
+    cursor:pointer;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:none;
+  }
+  .pad .empty{
+    border:0;
+    background:transparent;
+    pointer-events:none;
+  }
+
+  .overlay{
+    position:absolute;
+    inset:0;
+    background:rgba(255,255,255,0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    flex-direction:column;
+    gap:14px;
+    padding:20px;
+    box-sizing:border-box;
+    z-index:5;
+  }
+  .overlay.show{ display:flex; }
+  .ovMain{
+    font-size:28px;
+    font-weight:800;
+    line-height:1.25;
+  }
+
+  /* ✅ 성공 화면(완전 빈 화면: 문구만) */
+  .view{ display:none; }
+  .view.active{ display:block; }
+  .successScreen{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+    background:#fff;
+    color:#111;
+    padding:24px;
+    box-sizing:border-box;
+  }
+  .successMain{
+    font-size:34px;
+    font-weight:800;
+    line-height:1.25;
+    text-align:center;
+  }
+  .successSub{
+    font-size:18px;
+    font-weight:700;
+    opacity:0.9;
+    text-align:center;
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- ✅ 게임 화면 -->
+  <div id="viewGame" class="view active">
+    <div id="stage">
+      <div class="title">FOOD SLICE</div>
+
+      <div class="topRow">
+        <div class="topCard"><div id="timeTxt">15.0</div></div>
+        <div class="topCard"><div id="goalTxt">목표: ?회 깎기</div></div>
+      </div>
+
+      <div class="controls">
+        <button onclick="ui('reload')">새로고침</button>
+        <button onclick="ui('start')">시작</button>
+        <button onclick="ui('pause')">정지</button>
+      </div>
+
+      <div class="card" id="card">
+        <div class="overlay" id="overlay">
+          <div class="ovMain" id="ovMain"></div>
+        </div>
+
+        <div class="food" id="food"><img id="foodImg" alt=""></div>
+        <div class="knife" id="knife"></div>
+      </div>
+
+      <div class="padWrap">
+        <div class="pad" aria-label="direction pad">
+          <div class="empty"></div>
+          <button data-dir="up">▲</button>
+          <div class="empty"></div>
+
+          <button data-dir="left">◀</button>
+          <div class="empty"></div>
+          <button data-dir="right">▶</button>
+
+          <div class="empty"></div>
+          <button data-dir="down">▼</button>
+          <div class="empty"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ✅ 성공 화면 -->
+  <div id="viewSuccess" class="view">
+    <div class="successScreen">
+      <div class="successMain">성공! ♥하나가 회복되는 느낌이다</div>
+      <div class="successSub">오늘은 이것만 먹자. 음식을 아껴야해.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   ✅ 쉽게 수정하는 곳(다른 사이트로 복사할 때 여기만 건드리면 됨)
+   ========================================================= */
+const CONFIG = {
+  // ✅ 제한시간: 마지막 인식을 15초 안에 하면 성공(1초 딜레이는 타이머에서 제외됨)
+  ROUND_MS: 35000,
+
+  // ✅ required: 몇 번 "인식(썰림)" 해야 성공인지 (이번 라운드: 2번)
+  // 요구사항: potato1 -> (1회) -> potato2 -> (2회) -> potato3 -> 1초 후 성공 화면
+  REQUIRED_SLICES: 6,
+
+  // ✅ 이미지 파일(제각각 이름 OK) : 기본/1회/2회 결과 이미지
+  // 요청대로 photato1~3.png 사용
+  STAGES: [
+    "static/tomato1.png", // 기본
+    "static/tomato2.png", // 1회 성공 시
+    "static/tomato3.png",  // 2회 성공 시(마지막 이미지)
+    "static/tomato4.png",
+    "static/tomato5.png",
+    "static/tomato6.png",
+    "static/tomato7.png" 
+  ],
+
+  // ✅ 원형 인식 반경(px): 값↑ => 더 쉽게 썰림
+  HIT_FOOD_R: 38,
+  HIT_KNIFE_R: 55,
+
+  // ✅ 이동 속도
+  FOOD_MOVE_SPEED: 240,
+  KNIFE_SPEED: 460,
+
+  // ✅ 음식 방향 전환(값↑ => 덜 꺾임)
+  TURN_MS_MIN: 1100,
+  TURN_MS_MAX: 2200,
+
+  // ✅ 1초 쿨다운 유지
+  SLICE_COOLDOWN_MS: 1000,
+
+  // ✅ 마지막 성공 후 1초 뒤 문구 화면
+  SUCCESS_DELAY_MS: 1000
+};
+
+/* =========================================================
+   모바일 한 화면 스케일(게임 화면만)
+   ========================================================= */
+function fitStage(){
+  const stage = document.getElementById('stage');
+  if(!stage) return;
+  const baseW = 1100;
+  const baseH = stage.scrollHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const s = Math.min(1, vw/baseW, vh/baseH);
+  stage.style.transform = `scale(${s})`;
+  stage.style.transformOrigin = 'top center';
+}
+window.addEventListener('load', fitStage);
+window.addEventListener('resize', fitStage);
+
+/* =========================================================
+   DOM
+   ========================================================= */
+const viewGame = document.getElementById('viewGame');
+const viewSuccess = document.getElementById('viewSuccess');
+
+const foodEl = document.getElementById('food');
+const foodImg = document.getElementById('foodImg');
+const knifeEl = document.getElementById('knife');
+const timeTxt = document.getElementById('timeTxt');
+
+const overlay = document.getElementById('overlay');
+const ovMain = document.getElementById('ovMain');
+
+/* =========================================================
+   유틸
+   ========================================================= */
+const rand = (a,b)=> a + Math.random()*(b-a);
+const randi = (a,b)=> Math.floor(rand(a,b+1));
+const clamp = (v,a,b)=> Math.max(a, Math.min(b,v));
+
+function showOverlay(msg){
+  ovMain.textContent = msg;
+  overlay.classList.add('show');
+}
+function hideOverlay(){
+  overlay.classList.remove('show');
+}
+function switchView(name){
+  viewGame.classList.remove('active');
+  viewSuccess.classList.remove('active');
+  if(name === 'game') viewGame.classList.add('active');
+  if(name === 'success') viewSuccess.classList.add('active');
+  fitStage();
+}
+
+/* =========================================================
+   입력(키보드 + 모바일 멀티터치)
+   ========================================================= */
+const input = { up:false, down:false, left:false, right:false };
+
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'ArrowUp') input.up = true;
+  if(e.key === 'ArrowDown') input.down = true;
+  if(e.key === 'ArrowLeft') input.left = true;
+  if(e.key === 'ArrowRight') input.right = true;
+});
+window.addEventListener('keyup', (e)=>{
+  if(e.key === 'ArrowUp') input.up = false;
+  if(e.key === 'ArrowDown') input.down = false;
+  if(e.key === 'ArrowLeft') input.left = false;
+  if(e.key === 'ArrowRight') input.right = false;
+});
+
+document.querySelectorAll('.pad button[data-dir]').forEach(btn=>{
+  const dir = btn.dataset.dir;
+  btn.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    btn.setPointerCapture(e.pointerId);
+    input[dir] = true;
+  });
+  const off = (e)=>{
+    e.preventDefault();
+    input[dir] = false;
+  };
+  btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointercancel', off);
+  btn.addEventListener('pointerleave', off);
+});
+
+/* =========================================================
+   상태
+   ========================================================= */
+const CARD_W = 1024;
+const CARD_H = 768;
+const WALL_PAD = 10;
+
+let started = false;
+let paused  = true;
+let ended   = false;
+
+let lastTs = performance.now();
+
+// ✅ CSS와 동일(크기 조절 시 CSS+JS 같이 바꾸기)
+let knife = { x: CARD_W/2, y: CARD_H*0.70, w:72, h:128 };
+let food  = { x: CARD_W/2, y: CARD_H/2, vx:0, vy:0, w:160, h:120 };
+
+let sliceCount = 0;
+let lastSliceAt = -1e9;
+let wasColliding = false;
+
+let nextTurnAt = 0;
+let timeLeftMs = CONFIG.ROUND_MS;
+
+let spoilUntil = 0;
+let successTimeoutId = null;
+
+/* =========================================================
+   렌더
+   ========================================================= */
+function render(){
+  knifeEl.style.left = (knife.x - knife.w/2) + "px";
+  knifeEl.style.top  = (knife.y - knife.h/2) + "px";
+
+  foodEl.style.left = (food.x - food.w/2) + "px";
+  foodEl.style.top  = (food.y - food.h/2) + "px";
+}
+
+/* =========================================================
+   움직임
+   ========================================================= */
+function setRandomFoodVelocity(){
+  const ang = rand(0, Math.PI*2);
+  food.vx = Math.cos(ang) * CONFIG.FOOD_MOVE_SPEED;
+  food.vy = Math.sin(ang) * CONFIG.FOOD_MOVE_SPEED;
+}
+
+function updateKnife(dt){
+  let dx = 0, dy = 0;
+  if(input.left) dx -= 1;
+  if(input.right) dx += 1;
+  if(input.up) dy -= 1;
+  if(input.down) dy += 1;
+
+  if(dx !== 0 || dy !== 0){
+    const len = Math.hypot(dx,dy);
+    dx /= len; dy /= len;
+  }
+
+  knife.x += dx * CONFIG.KNIFE_SPEED * dt;
+  knife.y += dy * CONFIG.KNIFE_SPEED * dt;
+
+  knife.x = clamp(knife.x, WALL_PAD + knife.w/2, CARD_W - WALL_PAD - knife.w/2);
+  knife.y = clamp(knife.y, WALL_PAD + knife.h/2, CARD_H - WALL_PAD - knife.h/2);
+}
+
+function updateFood(dt, now){
+  if(now >= nextTurnAt){
+    setRandomFoodVelocity();
+    nextTurnAt = now + randi(CONFIG.TURN_MS_MIN, CONFIG.TURN_MS_MAX);
+  }
+
+  food.x += food.vx * dt;
+  food.y += food.vy * dt;
+
+  const halfW = food.w/2;
+  const halfH = food.h/2;
+
+  if(food.x < WALL_PAD + halfW){ food.x = WALL_PAD + halfW; food.vx *= -1; }
+  if(food.x > CARD_W - WALL_PAD - halfW){ food.x = CARD_W - WALL_PAD - halfW; food.vx *= -1; }
+  if(food.y < WALL_PAD + halfH){ food.y = WALL_PAD + halfH; food.vy *= -1; }
+  if(food.y > CARD_H - WALL_PAD - halfH){ food.y = CARD_H - WALL_PAD - halfH; food.vy *= -1; }
+}
+
+/* =========================================================
+   ✅ 중앙 원 충돌(원끼리)
+   ========================================================= */
+function isCircleHit(){
+  const dx = food.x - knife.x;
+  const dy = food.y - knife.y;
+  const r = CONFIG.HIT_FOOD_R + CONFIG.HIT_KNIFE_R;
+  return (dx*dx + dy*dy) <= (r*r);
+}
+
+/* =========================================================
+   썰기(요구사항 반영)
+   - 기본: photato1
+   - 1회 인식: photato2
+   - 2회 인식(마지막): photato3
+   - 마지막 인식이 15초 안이면 성공 판정
+   - 성공 판정 후 1초 뒤 문구 화면 전환(이 1초는 제한시간에 포함되지 않음)
+   ========================================================= */
+function onSlice(now){
+  if(ended) return;
+
+  // ✅ 2초 쿨다운
+  if(now - lastSliceAt < CONFIG.SLICE_COOLDOWN_MS) return;
+  lastSliceAt = now;
+
+  sliceCount++;
+
+  // ✅ 단계 이미지 교체: 0->1->2...
+  const stageIndex = clamp(sliceCount, 0, CONFIG.STAGES.length-1);
+  foodImg.src = CONFIG.STAGES[stageIndex];
+
+  // ✅ required 달성 시: 즉시 "성공 판정" + 1초 후 전환
+  if(sliceCount >= CONFIG.REQUIRED_SLICES){
+    ended = true;
+    paused = true;
+    started = false;
+
+    // ✅ 타이머는 여기서 이미 '성공했는지' 확인이 끝난 상태(1초 딜레이는 타이머 제외)
+    if(successTimeoutId) clearTimeout(successTimeoutId);
+    successTimeoutId = setTimeout(()=>{
+      switchView('success');
+    }, CONFIG.SUCCESS_DELAY_MS);
+  }
+}
+
+/* =========================================================
+   초기화
+   ========================================================= */
+function resetRound(){
+  ended = false;
+  hideOverlay();
+  spoilUntil = 0;
+
+  sliceCount = 0;
+  lastSliceAt = -1e9;
+
+  if(successTimeoutId) clearTimeout(successTimeoutId);
+  successTimeoutId = null;
+
+  timeLeftMs = CONFIG.ROUND_MS;
+  timeTxt.textContent = (timeLeftMs/1000).toFixed(1);
+
+  // ✅ 기본 이미지
+  foodImg.src = CONFIG.STAGES[0];
+
+  // ✅ 칼 위치 먼저
+  knife.x = CARD_W/2;
+  knife.y = CARD_H*0.70;
+
+  // ✅ 시작 시 겹침 방지(초반 인식 문제 줄이기)
+  const minDist = (CONFIG.HIT_FOOD_R + CONFIG.HIT_KNIFE_R + 20);
+  const minDist2 = minDist * minDist;
+  let tries = 0;
+  do{
+    food.x = rand(180, CARD_W-180);
+    food.y = rand(160, CARD_H-160);
+    const dx = food.x - knife.x;
+    const dy = food.y - knife.y;
+    if(dx*dx + dy*dy >= minDist2) break;
+    tries++;
+  }while(tries < 60);
+
+  setRandomFoodVelocity();
+  nextTurnAt = performance.now() + randi(CONFIG.TURN_MS_MIN, CONFIG.TURN_MS_MAX);
+
+  render();
+  wasColliding = isCircleHit();
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+function ui(action){
+  if(action === 'reload'){ location.reload(); return; }
+  if(action === 'start'){
+    switchView('game');
+    if(!started){
+      resetRound();
+      started = true;
+      paused = false;
+    }else{
+      paused = false;
+    }
+    return;
+  }
+  if(action === 'pause'){
+    paused = true;
+    return;
+  }
+}
+
+/* =========================================================
+   루프
+   ========================================================= */
+function loop(ts){
+  const now = ts;
+  const dt = Math.min(0.033, (now - lastTs)/1000);
+  lastTs = now;
+
+  if(viewGame.classList.contains('active')){
+    if(started && !paused && !ended){
+      timeLeftMs -= dt * 1000;
+      timeLeftMs = Math.max(0, timeLeftMs);
+      timeTxt.textContent = (timeLeftMs/1000).toFixed(1);
+
+      updateKnife(dt);
+      updateFood(dt, now);
+
+      const c = isCircleHit();
+      if(c && !wasColliding) onSlice(now);
+      wasColliding = c;
+
+      // ✅ 15초 내 마지막 인식 못하면 실패 처리(3초 메시지 후 정지 상태로 복귀)
+      if(timeLeftMs <= 0){
+        ended = true;
+        paused = true;
+        started = false;
+
+        showOverlay("제때 못썰어서 상해버렸다...다른 감자로 해보자");
+        spoilUntil = now + 3000;
+      }
+    }
+
+    if(spoilUntil && now >= spoilUntil){
+      spoilUntil = 0;
+      hideOverlay();
+      started = false;
+      paused = true;
+      ended = false;
+      resetRound();
+    }
+  }
+
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* 시작(기본 정지 상태) */
+(function init(){
+  switchView('game');
+  resetRound();
+  started = false;
+  paused = true;
+  ended = false;
+  fitStage();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<!--
+✅ 다른 사이트에서 required를 1씩 늘리기(수정 용이 포인트)
+- CONFIG.REQUIRED_SLICES 값을 바꾸면 됨.
+  (이번 라운드는 2회가 맞음)
+
+✅ 이미지 바꾸기
+- CONFIG.STAGES 배열에 원하는 파일명을 그대로 넣으면 됨.
+  예) ["static/a.png","static/b.png","static/c.png","static/d.png"...]
+  required가 늘어나면 stages도 그 이상 준비해두는 게 안전함.
+
+✅ “1초 후 문구 전환”은 성공 판정 이후 연출이며,
+   제한시간 15초 판정에는 포함되지 않음(요구사항 반영).
+-->
+</body>
+</html>
